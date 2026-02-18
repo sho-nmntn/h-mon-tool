@@ -1,0 +1,28 @@
+# Node exporter scrape targets.
+#
+# Notes:
+# - I used static ipv4, but you can depend on MagicDNS or something else.
+# - 'node' label is the friendly name you can use in Grafana variables/panels.
+
+- targets:
+    - <changeme!>:9100
+  labels:
+    node: <changeme!>
+    reach: local # can be wg or ts or local. change accordingly, add as many as you need
+    aliases: - <changeme!>
+    
+- targets:
+    - <changeme!>:9100
+  labels:
+    node: <changeme!>
+    reach: wireguard
+    addr: <changeme!>
+    aliases: - <changeme!>
+
+- targets:
+    - <changeme!>:9100
+  labels:
+    node: <changeme!>
+    reach: wireguard
+    ts_name: <changeme!>
+

@@ -1,0 +1,13 @@
+http:
+  address: 0.0.0.0
+  port: 12345
+  alerts-path: /alerts
+  metrics-enabled: true
+matrix:
+  homeserver-url: <changeme!>
+  user-id: '<changeme!>'
+  access-token: <changeme!>
+  room-mapping:
+    pager: '<changeme!>'
+templating:
+  firing-template: 'Event: {{ .GroupLabels.alertname }}'

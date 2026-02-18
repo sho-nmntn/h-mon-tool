@@ -1,0 +1,33 @@
+services:
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    command:
+    - --path.rootfs=/host
+    - --collector.textfile.directory=/var/lib/node_exporter/textfile
+    - --web.listen-address=${NODE_EXPORTER_LISTEN_ADDRESS:-:9100}
+    volumes:
+    - /:/host:ro,rslave
+    - /var/lib/node_exporter/textfile:/var/lib/node_exporter/textfile
+  vector:
+    image: timberio/vector:latest-debian
+    container_name: vector
+    restart: unless-stopped
+    network_mode: host
+    environment:
+    - HOST_LABEL=${HOST_LABEL}
+    - LOKI_PRIMARY_PUSH_URL=${LOKI_PRIMARY_PUSH_URL}
+    - LOKI_SECONDARY_PUSH_URL=${LOKI_SECONDARY_PUSH_URL}
+    volumes:
+    - ./vector/vector.toml:/etc/vector/vector.toml:ro
+    - /var/log:/var/log:ro
+    - /run/log/journal:/run/log/journal:ro
+    - /var/log/journal:/var/log/journal:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+    - --config
+    - /etc/vector/vector.toml
+

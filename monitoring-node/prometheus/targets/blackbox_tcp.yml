@@ -1,0 +1,13 @@
+- targets:
+    # Mail (STARTTLS / plain TCP reachability)
+    - <changeme!>
+
+    # MTProto (443 is NOT necessarily TLS)
+    - <changeme!>:443
+
+    # Xray TCP reachability (may not be HTTP)
+    - <changeme!>
+    - <changeme!>:443
+
+    # MTProto / any other service
+    - <changeme!>

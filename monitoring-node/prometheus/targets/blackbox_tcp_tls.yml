@@ -1,0 +1,6 @@
+- targets:
+    # IMAPS
+    - <changeme!>:993
+
+    # Synapse federation (TLS)
+    - <changeme!>:8448

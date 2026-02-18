@@ -1,0 +1,120 @@
+groups:
+  - name: basic
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target down: {{ $labels.job }} {{ $labels.instance }}"
+          description: "Prometheus cannot scrape {{ $labels.instance }} (job={{ $labels.job }})"
+
+      - alert: BlackboxProbeFailed
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Probe failed: {{ $labels.instance }}"
+          description: "Blackbox probe failed for {{ $labels.instance }} (module={{ $labels.module }})"
+
+      - alert: SSLCertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) < (14 * 24 * 3600)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS cert expiring soon: {{ $labels.instance }}"
+          description: "Certificate for {{ $labels.instance }} expires in < 14 days."
+
+      - alert: HostDiskAlmostFull
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk almost full: {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} has < 10% free space."
+
+      - alert: HostLoadHigh
+        expr: node_load1 > (count without (cpu,mode) (node_cpu_seconds_total{mode="idle"}) * 1.5)
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High load: {{ $labels.instance }}"
+          description: "Load1 is high ({{ $value }}) compared to CPU count."
+  - name: host_resources
+    rules:
+      - alert: HostCPUHigh
+        expr: |
+          100 * (1 - avg by (instance, node) (rate(node_cpu_seconds_total{job="node", mode="idle"}[5m]))) > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.node }}"
+          description: "CPU busy > 90% for 15m (instance={{ $labels.instance }})"
+
+      - alert: HostCPUSpike
+        expr: |
+          (
+            (100 * (1 - avg by (instance, node) (rate(node_cpu_seconds_total{job="node", mode="idle"}[5m]))))
+            -
+            avg_over_time((100 * (1 - avg by (instance, node) (rate(node_cpu_seconds_total{job="node", mode="idle"}[5m]))))[1h:5m])
+          ) > 15
+          and
+          (100 * (1 - avg by (instance, node) (rate(node_cpu_seconds_total{job="node", mode="idle"}[5m])))) > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU spike on {{ $labels.node }}"
+          description: "CPU busy jumped > 15 percentage points vs 1h baseline (instance={{ $labels.instance }})"
+
+      - alert: HostMemoryHigh
+        expr: |
+          100 * (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory on {{ $labels.node }}"
+          description: "Memory used > 90% for 15m (instance={{ $labels.instance }})"
+
+      - alert: HostMemorySpike
+        expr: |
+          (
+            (100 * (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})))
+            -
+            avg_over_time((100 * (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})))[1h:5m])
+          ) > 15
+          and
+          (100 * (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"}))) > 70
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory spike on {{ $labels.node }}"
+          description: "Memory used jumped > 15 percentage points vs 1h baseline (instance={{ $labels.instance }})"
+
+      - alert: HostFilesystemReadOnly
+        expr: |
+          node_filesystem_readonly{job="node",fstype!~"tmpfs|overlay"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Filesystem read-only on {{ $labels.node }}"
+          description: "Mountpoint {{ $labels.mountpoint }} is read-only (instance={{ $labels.instance }})"
+
+      - alert: HostRecentlyRebooted
+        expr: |
+          (time() - node_boot_time_seconds{job="node"}) < 600
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "Host recently rebooted: {{ $labels.node }}"
+          description: "Host rebooted within the last 10 minutes (instance={{ $labels.instance }})"

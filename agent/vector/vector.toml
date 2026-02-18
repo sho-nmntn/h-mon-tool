@@ -1,0 +1,56 @@
+[sources.journald]
+  type = "journald"
+
+[sources.nginx_error]
+  type = "file"
+  include = ["/var/log/nginx/error.log", "/var/log/nginx/*error*.log"]
+  ignore_older_secs = 86400
+
+[sources.fail2ban]
+  type = "file"
+  include = ["/var/log/fail2ban.log"]
+  ignore_older_secs = 86400
+
+[sources.auth]
+  type = "file"
+  include = ["/var/log/auth.log", "/var/log/secure"]
+  ignore_older_secs = 86400
+
+# Docker logs via Docker API so we get container_name/image metadata.
+# Requires /var/run/docker.sock mounted into the container.
+[sources.docker]
+  type = "docker_logs"
+  docker_host = "unix:///var/run/docker.sock"
+  exclude_containers = ["vector", "node_exporter"]
+
+[transforms.add_labels]
+  type = "remap"
+  inputs = ["journald", "nginx_error", "fail2ban", "auth", "docker"]
+  source = '''
+  .labels.host = get_env_var!("HOST_LABEL")
+
+  # For docker_logs events, attach the container name as a Loki label.
+  if exists(.container_name) {
+    .labels.container = string!(.container_name)
+  } else {
+    .labels.container = "host"
+  }
+  '''
+
+[sinks.loki_primary]
+  type = "loki"
+  inputs = ["add_labels"]
+  endpoint = "${LOKI_PRIMARY_PUSH_URL}"
+  encoding.codec = "json"
+  labels.host = "{{ labels.host }}"
+  labels.container = "{{ labels.container }}"
+  labels.source = "{{ source_type }}"
+
+[sinks.loki_secondary]
+  type = "loki"
+  inputs = ["add_labels"]
+  endpoint = "${LOKI_SECONDARY_PUSH_URL}"
+  encoding.codec = "json"
+  labels.host = "{{ labels.host }}"
+  labels.container = "{{ labels.container }}"
+  labels.source = "{{ source_type }}"
